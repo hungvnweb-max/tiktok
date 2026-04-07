@@ -39,6 +39,7 @@ jobs:
           PILOT_RECONCILE_TOKEN: ${{ secrets.INTERNAL_RECONCILIATION_TOKEN }}
           PILOT_RENDER_CALLBACK_SECRET: ${{ secrets.TEMPLATE_RENDER_CALLBACK_SECRET }}
         run: |
+          npm run check
           npm run scripts:build
           if [ "${{ inputs.strict }}" = "true" ]; then
             node .tmp-ts-scripts/scripts/pilot-dry-run-dataset.js --dataset "${{ inputs.dataset_path }}" --output .ci-artifacts/pilot-dry-run/pilot-dry-run-report.json --strict

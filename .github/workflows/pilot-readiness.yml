@@ -40,6 +40,7 @@ jobs:
           RENDER_RECONCILIATION_OWNER_ID: ${{ vars.RENDER_RECONCILIATION_OWNER_ID }}
           PUBLISH_RECONCILIATION_OWNER_ID: ${{ vars.PUBLISH_RECONCILIATION_OWNER_ID }}
         run: |
+          npm run check
           npm run scripts:build
           if [ "${{ inputs.strict }}" = "true" ]; then
             node .tmp-ts-scripts/scripts/pilot-execution-readiness.js --output .ci-artifacts/pilot/pilot-readiness.json --strict
