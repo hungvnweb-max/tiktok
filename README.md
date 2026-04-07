@@ -85,7 +85,30 @@ npm run preflight:staging:snapshot
 npm run preflight:staging:baseline
 npm run preflight:staging:diff
 npm run preflight:staging:diff:strict
+npm run smoke:publish:modes
+npm run pilot:readiness
+npm run pilot:dry-run:dataset
 npm run smoke:staging:full
+```
+
+Targeted publish mode matrix smoke:
+
+```bash
+npm run smoke:publish:modes
+```
+
+Pilot readiness report (writes `.artifacts/pilot/pilot-readiness.json`):
+
+```bash
+npm run pilot:readiness
+npm run pilot:readiness:strict
+```
+
+Pilot dry-run dataset report (writes `.artifacts/pilot/pilot-dry-run-report.json`):
+
+```bash
+npm run pilot:dry-run:dataset
+npm run pilot:dry-run:dataset:strict
 ```
 
 Committed drift baseline file:
@@ -95,6 +118,12 @@ Committed drift baseline file:
 Manual controlled baseline promotion workflow:
 
 - `.github/workflows/promote-preflight-baseline.yml` (`workflow_dispatch`)
+- `.github/workflows/pilot-readiness.yml` (`workflow_dispatch`)
+- `.github/workflows/pilot-dry-run-dataset.yml` (`workflow_dispatch`)
+
+Pilot staging checklist:
+
+- `docs/PILOT_EXECUTION_READINESS.md`
 
 ## Prisma
 

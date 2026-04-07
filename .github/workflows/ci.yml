@@ -31,6 +31,9 @@ jobs:
       - name: Publish smoke
         run: npm run smoke:publish
 
+      - name: Publish mode matrix smoke
+        run: npm run smoke:publish:modes
+
       - name: Reconciliation health smoke
         run: npm run smoke:health
 
@@ -73,6 +76,22 @@ jobs:
           node .tmp-ts-scripts/scripts/staging-preflight.js --output .ci-artifacts/preflight/staging-preflight.json
           node .tmp-ts-scripts/scripts/preflight-snapshot-diff.js --baseline infra/observability/preflight/staging-preflight.baseline.json --current .ci-artifacts/preflight/staging-preflight.json --output .ci-artifacts/preflight/staging-preflight-diff.json --strict
 
+      - name: Pilot readiness strict
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/videotik
+          INTERNAL_RECONCILIATION_TOKEN: ci-internal-reconcile-token-1234567890
+          TEMPLATE_RENDER_CALLBACK_SECRET: ci-render-callback-secret-1234567890
+          TIKTOK_PUBLISH_CALLBACK_SECRET: ci-publish-callback-secret-1234567890
+          VIDEOTIK_ALERT_WEBHOOK_URL: https://alerts.example.com/videotik-ci
+          VIDEOTIK_ALERT_EMAIL_TO: ops@example.com
+          GF_SMTP_HOST: smtp.example.com:587
+          GF_SMTP_FROM_ADDRESS: alerts@example.com
+          RENDER_RECONCILIATION_OWNER_ID: ci-render-worker
+          PUBLISH_RECONCILIATION_OWNER_ID: ci-publish-worker
+        run: |
+          npm run scripts:build
+          node .tmp-ts-scripts/scripts/pilot-execution-readiness.js --output .ci-artifacts/pilot/pilot-readiness.json --strict
+
       - name: Docker info
         run: docker info
 
@@ -100,6 +119,14 @@ jobs:
         with:
           name: staging-preflight-artifacts
           path: .ci-artifacts/preflight
+          if-no-files-found: ignore
+
+      - name: Upload pilot readiness artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-readiness-artifacts
+          path: .ci-artifacts/pilot
           if-no-files-found: ignore
 
       - name: Teardown observability sandbox

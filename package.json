@@ -25,6 +25,11 @@
     "smoke:observability": "npm run scripts:build && node .tmp-ts-scripts/scripts/observability-assets-smoke.js",
     "smoke:health": "npm run scripts:build && node .tmp-ts-scripts/scripts/reconciliation-health-smoke.js",
     "smoke:publish": "npm run scripts:build && node .tmp-ts-scripts/scripts/publish-callback-reconcile-smoke.js",
+    "smoke:publish:modes": "npm run scripts:build && node .tmp-ts-scripts/scripts/publish-mode-matrix-smoke.js",
+    "pilot:readiness": "npm run scripts:build && node .tmp-ts-scripts/scripts/pilot-execution-readiness.js --output .artifacts/pilot/pilot-readiness.json",
+    "pilot:readiness:strict": "npm run scripts:build && node .tmp-ts-scripts/scripts/pilot-execution-readiness.js --output .artifacts/pilot/pilot-readiness.json --strict",
+    "pilot:dry-run:dataset": "npm run scripts:build && node .tmp-ts-scripts/scripts/pilot-dry-run-dataset.js --dataset infra/pilot/pilot-dry-run-dataset.json --output .artifacts/pilot/pilot-dry-run-report.json",
+    "pilot:dry-run:dataset:strict": "npm run scripts:build && node .tmp-ts-scripts/scripts/pilot-dry-run-dataset.js --dataset infra/pilot/pilot-dry-run-dataset.json --output .artifacts/pilot/pilot-dry-run-report.json --strict",
     "smoke:staging:full": "npm run preflight:staging:snapshot && npm run preflight:staging:diff && npm run check && npm run smoke:publish && npm run smoke:health && npm run smoke:observability && npm run sandbox:observability:e2e",
     "postinstall": "npm run db:generate"
   },

@@ -48,6 +48,10 @@ const run = (): void => {
     "infra/observability/preflight/staging-preflight.baseline.json";
   const manualPromoteWorkflowPath =
     ".github/workflows/promote-preflight-baseline.yml";
+  const pilotReadinessWorkflowPath =
+    ".github/workflows/pilot-readiness.yml";
+  const pilotDryRunDatasetWorkflowPath =
+    ".github/workflows/pilot-dry-run-dataset.yml";
 
   const prometheusModule = readText(prometheusModulePath);
   assertContainsAll(
@@ -309,6 +313,42 @@ const run = (): void => {
     manualPromoteWorkflowPath
   );
 
+  const pilotReadinessWorkflow = readText(pilotReadinessWorkflowPath);
+  assertContainsAll(
+    pilotReadinessWorkflow,
+    [
+      "workflow_dispatch",
+      "inputs:",
+      "strict:",
+      "DATABASE_URL",
+      "INTERNAL_RECONCILIATION_TOKEN",
+      "TEMPLATE_RENDER_CALLBACK_SECRET",
+      "TIKTOK_PUBLISH_CALLBACK_SECRET",
+      "VIDEOTIK_ALERT_WEBHOOK_URL",
+      "VIDEOTIK_ALERT_EMAIL_TO",
+      "pilot-execution-readiness.js",
+      "upload-artifact"
+    ],
+    pilotReadinessWorkflowPath
+  );
+
+  const pilotDryRunWorkflow = readText(pilotDryRunDatasetWorkflowPath);
+  assertContainsAll(
+    pilotDryRunWorkflow,
+    [
+      "workflow_dispatch",
+      "dataset_path",
+      "strict:",
+      "PILOT_API_BASE_URL",
+      "PILOT_API_TOKEN",
+      "PILOT_RECONCILE_TOKEN",
+      "PILOT_RENDER_CALLBACK_SECRET",
+      "pilot-dry-run-dataset.js",
+      "upload-artifact"
+    ],
+    pilotDryRunDatasetWorkflowPath
+  );
+
   console.log(
     JSON.stringify(
       {
@@ -327,7 +367,9 @@ const run = (): void => {
           sandboxGrafanaDashboardsPath,
           sandboxE2eScriptPath,
           preflightBaselinePath,
-          manualPromoteWorkflowPath
+          manualPromoteWorkflowPath,
+          pilotReadinessWorkflowPath,
+          pilotDryRunDatasetWorkflowPath
         },
         dashboardPanelCount: dashboardObject.panels.length
       },

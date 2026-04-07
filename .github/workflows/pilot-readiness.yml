@@ -1,0 +1,56 @@
+name: Pilot Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: "Fail workflow when readiness blockers exist"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  pilot-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run pilot readiness
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          INTERNAL_RECONCILIATION_TOKEN: ${{ secrets.INTERNAL_RECONCILIATION_TOKEN }}
+          TEMPLATE_RENDER_CALLBACK_SECRET: ${{ secrets.TEMPLATE_RENDER_CALLBACK_SECRET }}
+          TIKTOK_PUBLISH_CALLBACK_SECRET: ${{ secrets.TIKTOK_PUBLISH_CALLBACK_SECRET }}
+          VIDEOTIK_ALERT_WEBHOOK_URL: ${{ secrets.VIDEOTIK_ALERT_WEBHOOK_URL }}
+          VIDEOTIK_ALERT_EMAIL_TO: ${{ secrets.VIDEOTIK_ALERT_EMAIL_TO }}
+          GF_SMTP_HOST: ${{ secrets.GF_SMTP_HOST }}
+          GF_SMTP_FROM_ADDRESS: ${{ secrets.GF_SMTP_FROM_ADDRESS }}
+          RENDER_RECONCILIATION_OWNER_ID: ${{ vars.RENDER_RECONCILIATION_OWNER_ID }}
+          PUBLISH_RECONCILIATION_OWNER_ID: ${{ vars.PUBLISH_RECONCILIATION_OWNER_ID }}
+        run: |
+          npm run scripts:build
+          if [ "${{ inputs.strict }}" = "true" ]; then
+            node .tmp-ts-scripts/scripts/pilot-execution-readiness.js --output .ci-artifacts/pilot/pilot-readiness.json --strict
+          else
+            node .tmp-ts-scripts/scripts/pilot-execution-readiness.js --output .ci-artifacts/pilot/pilot-readiness.json
+          fi
+
+      - name: Upload pilot readiness artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-readiness-report
+          path: .ci-artifacts/pilot
+          if-no-files-found: ignore

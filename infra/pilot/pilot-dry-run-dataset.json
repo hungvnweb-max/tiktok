@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "quick_tip_manual",
+      "contentFormatSlug": "quick_tip",
+      "publishMode": "manual",
+      "topic": {
+        "name": "Pilot Manual Ops",
+        "description": "Dry-run pipeline for manual publishing mode validation.",
+        "audience": "operators"
+      },
+      "schedule": {
+        "platformSlug": "tiktok",
+        "provider": "tiktok",
+        "timezone": "Europe/Berlin",
+        "offsetMinutes": 20
+      },
+      "hashtags": [
+        "#pilot",
+        "#manual_mode"
+      ]
+    },
+    {
+      "id": "quick_tip_semi_auto",
+      "contentFormatSlug": "quick_tip",
+      "publishMode": "semi_auto",
+      "topic": {
+        "name": "Pilot Semi Auto Ops",
+        "description": "Dry-run pipeline for semi_auto publishing mode validation.",
+        "audience": "operators"
+      },
+      "schedule": {
+        "platformSlug": "tiktok",
+        "provider": "tiktok",
+        "timezone": "Europe/Berlin",
+        "offsetMinutes": 25
+      },
+      "hashtags": [
+        "#pilot",
+        "#semi_auto_mode"
+      ]
+    },
+    {
+      "id": "quick_tip_full_auto",
+      "contentFormatSlug": "quick_tip",
+      "publishMode": "full_auto",
+      "topic": {
+        "name": "Pilot Full Auto Ops",
+        "description": "Dry-run pipeline for full_auto publishing mode validation.",
+        "audience": "operators"
+      },
+      "schedule": {
+        "platformSlug": "tiktok",
+        "provider": "tiktok",
+        "timezone": "Europe/Berlin",
+        "offsetMinutes": 30
+      },
+      "hashtags": [
+        "#pilot",
+        "#full_auto_mode"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+name: Pilot Dry-Run Dataset
+
+on:
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: "Fail workflow when any dataset item fails"
+        required: true
+        type: boolean
+        default: true
+      dataset_path:
+        description: "Path to dataset JSON in repository"
+        required: true
+        type: string
+        default: "infra/pilot/pilot-dry-run-dataset.json"
+
+jobs:
+  pilot-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run pilot dry-run dataset
+        env:
+          PILOT_API_BASE_URL: ${{ secrets.PILOT_API_BASE_URL }}
+          PILOT_API_TOKEN: ${{ secrets.PILOT_API_TOKEN }}
+          PILOT_RECONCILE_TOKEN: ${{ secrets.INTERNAL_RECONCILIATION_TOKEN }}
+          PILOT_RENDER_CALLBACK_SECRET: ${{ secrets.TEMPLATE_RENDER_CALLBACK_SECRET }}
+        run: |
+          npm run scripts:build
+          if [ "${{ inputs.strict }}" = "true" ]; then
+            node .tmp-ts-scripts/scripts/pilot-dry-run-dataset.js --dataset "${{ inputs.dataset_path }}" --output .ci-artifacts/pilot-dry-run/pilot-dry-run-report.json --strict
+          else
+            node .tmp-ts-scripts/scripts/pilot-dry-run-dataset.js --dataset "${{ inputs.dataset_path }}" --output .ci-artifacts/pilot-dry-run/pilot-dry-run-report.json
+          fi
+
+      - name: Upload pilot dry-run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-dry-run-report
+          path: .ci-artifacts/pilot-dry-run
+          if-no-files-found: ignore
