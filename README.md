@@ -121,6 +121,13 @@ Manual controlled baseline promotion workflow:
 - `.github/workflows/pilot-readiness.yml` (`workflow_dispatch`)
 - `.github/workflows/pilot-dry-run-dataset.yml` (`workflow_dispatch`)
 
+Required GitHub Actions secrets for pilot dry-run dataset workflow:
+
+- `PILOT_API_BASE_URL` (must be reachable from GitHub runner; not `localhost`)
+- `PILOT_API_TOKEN` (if staging API enforces bearer auth)
+- `INTERNAL_RECONCILIATION_TOKEN`
+- `TEMPLATE_RENDER_CALLBACK_SECRET`
+
 Pilot staging checklist:
 
 - `docs/PILOT_EXECUTION_READINESS.md`

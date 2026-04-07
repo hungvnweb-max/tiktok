@@ -876,7 +876,40 @@ const writeReport = (outputPath: string, report: PilotDryRunReport): void => {
 const run = async (): Promise<void> => {
   const options = parseCliOptions(process.argv.slice(2));
   const dataset = loadDataset(options.datasetPath);
-  const apiBaseUrl = (process.env.PILOT_API_BASE_URL?.trim() || defaultApiBaseUrl).replace(/\/+$/, "");
+  const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
+  const configuredApiBaseUrl = process.env.PILOT_API_BASE_URL?.trim();
+
+  if (isGitHubActions && !configuredApiBaseUrl) {
+    throw new Error(
+      "Missing required secret PILOT_API_BASE_URL in GitHub Actions. " +
+        "Set it at Settings -> Secrets and variables -> Actions."
+    );
+  }
+
+  const configuredRenderCallbackSecret =
+    process.env.PILOT_RENDER_CALLBACK_SECRET?.trim() ??
+    process.env.TEMPLATE_RENDER_CALLBACK_SECRET?.trim() ??
+    process.env.RENDER_CALLBACK_SECRET?.trim();
+  if (isGitHubActions && !configuredRenderCallbackSecret) {
+    throw new Error(
+      "Missing required render callback secret (PILOT_RENDER_CALLBACK_SECRET or TEMPLATE_RENDER_CALLBACK_SECRET)."
+    );
+  }
+
+  const configuredReconcileToken = process.env.PILOT_RECONCILE_TOKEN?.trim();
+  if (isGitHubActions && !configuredReconcileToken) {
+    throw new Error(
+      "Missing required reconcile token PILOT_RECONCILE_TOKEN (map from INTERNAL_RECONCILIATION_TOKEN secret)."
+    );
+  }
+
+  const apiBaseUrl = (configuredApiBaseUrl || defaultApiBaseUrl).replace(/\/+$/, "");
+  if (isGitHubActions && /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(apiBaseUrl)) {
+    throw new Error(
+      `Invalid PILOT_API_BASE_URL for GitHub Actions: "${apiBaseUrl}". ` +
+        "Use a reachable staging URL, not localhost."
+    );
+  }
 
   const reports: PerVideoReport[] = [];
 

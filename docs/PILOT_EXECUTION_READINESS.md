@@ -34,6 +34,13 @@ Manual GitHub workflow for staging dataset dry-run:
 
 - `.github/workflows/pilot-dry-run-dataset.yml`
 
+Required repository secrets before running workflow:
+
+- `PILOT_API_BASE_URL` (staging URL reachable from GitHub Actions; not localhost)
+- `PILOT_API_TOKEN` (required if API auth is enabled)
+- `INTERNAL_RECONCILIATION_TOKEN`
+- `TEMPLATE_RENDER_CALLBACK_SECRET`
+
 ## 2) Pilot Matrix
 
 For each mode (`manual`, `semi_auto`, `full_auto`):

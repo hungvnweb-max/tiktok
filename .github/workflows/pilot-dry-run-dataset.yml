@@ -58,6 +58,10 @@ jobs:
             echo "PILOT_API_BASE_URL must start with http:// or https://"
             exit 1
           fi
+          if [[ "${PILOT_API_BASE_URL}" =~ ^https?://(localhost|127\.0\.0\.1)(:|/|$) ]]; then
+            echo "PILOT_API_BASE_URL must point to a reachable staging API in GitHub Actions (localhost is not valid)."
+            exit 1
+          fi
           echo "Secrets validation passed."
 
       - name: Validate API connectivity
@@ -65,6 +69,7 @@ jobs:
           PILOT_API_BASE_URL: ${{ secrets.PILOT_API_BASE_URL }}
         run: |
           set -euo pipefail
+          mkdir -p .ci-artifacts/pilot-dry-run
           curl -fsS --max-time 20 "${PILOT_API_BASE_URL}/health" > .ci-artifacts/pilot-dry-run/api-health.json
           echo "API connectivity check passed."
 
