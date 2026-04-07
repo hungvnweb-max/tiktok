@@ -18,6 +18,10 @@ jobs:
   pilot-dry-run:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    permissions:
+      contents: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
       - name: Checkout
@@ -32,6 +36,38 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate required secrets
+        env:
+          PILOT_API_BASE_URL: ${{ secrets.PILOT_API_BASE_URL }}
+          PILOT_API_TOKEN: ${{ secrets.PILOT_API_TOKEN }}
+          PILOT_RECONCILE_TOKEN: ${{ secrets.INTERNAL_RECONCILIATION_TOKEN }}
+          PILOT_RENDER_CALLBACK_SECRET: ${{ secrets.TEMPLATE_RENDER_CALLBACK_SECRET }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in PILOT_API_BASE_URL PILOT_RECONCILE_TOKEN PILOT_RENDER_CALLBACK_SECRET; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          if [[ ! "${PILOT_API_BASE_URL}" =~ ^https?:// ]]; then
+            echo "PILOT_API_BASE_URL must start with http:// or https://"
+            exit 1
+          fi
+          echo "Secrets validation passed."
+
+      - name: Validate API connectivity
+        env:
+          PILOT_API_BASE_URL: ${{ secrets.PILOT_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 "${PILOT_API_BASE_URL}/health" > .ci-artifacts/pilot-dry-run/api-health.json
+          echo "API connectivity check passed."
+
       - name: Run pilot dry-run dataset
         env:
           PILOT_API_BASE_URL: ${{ secrets.PILOT_API_BASE_URL }}
@@ -39,6 +75,7 @@ jobs:
           PILOT_RECONCILE_TOKEN: ${{ secrets.INTERNAL_RECONCILIATION_TOKEN }}
           PILOT_RENDER_CALLBACK_SECRET: ${{ secrets.TEMPLATE_RENDER_CALLBACK_SECRET }}
         run: |
+          set -euo pipefail
           npm run check
           npm run scripts:build
           if [ "${{ inputs.strict }}" = "true" ]; then
@@ -46,6 +83,17 @@ jobs:
           else
             node .tmp-ts-scripts/scripts/pilot-dry-run-dataset.js --dataset "${{ inputs.dataset_path }}" --output .ci-artifacts/pilot-dry-run/pilot-dry-run-report.json
           fi
+
+      - name: Capture diagnostics on failure
+        if: failure()
+        run: |
+          mkdir -p .ci-artifacts/pilot-dry-run
+          echo "pwd=$(pwd)" > .ci-artifacts/pilot-dry-run/diagnostics.txt
+          echo "node=$(node -v)" >> .ci-artifacts/pilot-dry-run/diagnostics.txt
+          echo "npm=$(npm -v)" >> .ci-artifacts/pilot-dry-run/diagnostics.txt
+          echo "branch=${GITHUB_REF_NAME}" >> .ci-artifacts/pilot-dry-run/diagnostics.txt
+          echo "sha=${GITHUB_SHA}" >> .ci-artifacts/pilot-dry-run/diagnostics.txt
+          ls -la >> .ci-artifacts/pilot-dry-run/diagnostics.txt
 
       - name: Upload pilot dry-run artifacts
         if: always()
