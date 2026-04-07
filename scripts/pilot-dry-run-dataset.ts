@@ -312,11 +312,40 @@ const requestJson = async <T>(input: {
   body?: unknown;
   headers?: Record<string, string>;
 }): Promise<T> => {
-  const response = await fetch(`${input.baseUrl}${input.path}`, {
-    method: input.method,
-    headers: buildHeaders(input.headers),
-    ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) })
-  });
+  const url = `${input.baseUrl}${input.path}`;
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: input.method,
+      headers: buildHeaders(input.headers),
+      ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) })
+    });
+  } catch (cause) {
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
+    const wrappedError = new Error(
+      `Network request failed for ${input.method} ${url}: ${causeMessage}`
+    ) as Error & {
+      code?: string;
+      details?: Record<string, unknown>;
+      path?: string;
+      method?: string;
+      statusCode?: number;
+    };
+
+    wrappedError.code = "network_request_failed";
+    wrappedError.path = input.path;
+    wrappedError.method = input.method;
+    wrappedError.details = {
+      url,
+      causeMessage,
+      ...(cause instanceof Error && "stack" in cause
+        ? { causeStack: cause.stack }
+        : {})
+    };
+
+    throw wrappedError;
+  }
 
   const text = await response.text();
   let maybeJson: unknown = undefined;
@@ -345,11 +374,20 @@ const requestJson = async <T>(input: {
       method?: string;
     };
     error.statusCode = response.status;
+    error.details = {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      ...(typeof maybeJson === "string"
+        ? {
+            responseTextPreview:
+              maybeJson.length > 500 ? `${maybeJson.slice(0, 500)}...` : maybeJson
+          }
+        : {}),
+      ...(payload.error?.details ?? {})
+    };
     if (payload.error?.code) {
       error.code = payload.error.code;
-    }
-    if (payload.error?.details) {
-      error.details = payload.error.details;
     }
     error.path = input.path;
     error.method = input.method;
