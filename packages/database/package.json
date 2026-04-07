@@ -1,0 +1,23 @@
+{
+  "name": "@videotik/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "@videotik/core": "*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "check": "tsc -b --pretty false",
+    "prisma:generate": "node ../../scripts/prisma-command.cjs generate --schema prisma/schema.prisma",
+    "prisma:validate": "node ../../scripts/prisma-command.cjs validate --schema prisma/schema.prisma"
+  }
+}

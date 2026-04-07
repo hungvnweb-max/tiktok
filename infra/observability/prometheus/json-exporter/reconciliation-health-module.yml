@@ -1,0 +1,27 @@
+modules:
+  videotik_reconciliation_health:
+    metrics:
+      - name: videotik_reconcile_render_consecutive_failures
+        help: Consecutive failed render reconciliation runs.
+        path: "{.reconciliation.render.consecutiveFailures}"
+        type: value
+      - name: videotik_reconcile_publish_consecutive_failures
+        help: Consecutive failed publish reconciliation runs.
+        path: "{.reconciliation.publish.consecutiveFailures}"
+        type: value
+      - name: videotik_reconcile_render_pending_count
+        help: Pending render items seen in last reconciliation summary.
+        path: "{.reconciliation.render.lastResult.pendingCount}"
+        type: value
+      - name: videotik_reconcile_publish_pending_count
+        help: Pending publish items seen in last reconciliation summary.
+        path: "{.reconciliation.publish.lastResult.pendingCount}"
+        type: value
+      - name: videotik_reconcile_render_failed_count
+        help: Failed render items seen in last reconciliation summary.
+        path: "{.reconciliation.render.lastResult.failedCount}"
+        type: value
+      - name: videotik_reconcile_publish_failed_count
+        help: Failed publish items seen in last reconciliation summary.
+        path: "{.reconciliation.publish.lastResult.failedCount}"
+        type: value

@@ -1,0 +1,37 @@
+{
+  "name": "videotik-ai-tiktok-video-system",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "check": "tsc -b --pretty false",
+    "scripts:build": "tsc -p tsconfig.scripts.json --pretty false",
+    "db:generate": "node scripts/prisma-command.cjs generate --schema packages/database/prisma/schema.prisma",
+    "db:migrate:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
+    "db:migrate:dev": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
+    "db:validate": "node scripts/prisma-command.cjs validate --schema packages/database/prisma/schema.prisma",
+    "dev:api": "tsx apps/api/src/server.ts",
+    "sandbox:observability:up": "docker compose -f infra/observability/sandbox/docker-compose.yml up --build",
+    "sandbox:observability:down": "docker compose -f infra/observability/sandbox/docker-compose.yml down -v",
+    "sandbox:observability:e2e": "npm run scripts:build && node .tmp-ts-scripts/scripts/observability-sandbox-e2e.js",
+    "preflight:staging": "npm run scripts:build && node .tmp-ts-scripts/scripts/staging-preflight.js",
+    "preflight:staging:snapshot": "npm run preflight:staging -- --output .artifacts/preflight/staging-preflight.json",
+    "preflight:staging:baseline": "npm run scripts:build && node .tmp-ts-scripts/scripts/preflight-snapshot-baseline.js --source .artifacts/preflight/staging-preflight.json --target infra/observability/preflight/staging-preflight.baseline.json",
+    "preflight:staging:diff": "npm run scripts:build && node .tmp-ts-scripts/scripts/preflight-snapshot-diff.js --baseline infra/observability/preflight/staging-preflight.baseline.json --current .artifacts/preflight/staging-preflight.json --output .artifacts/preflight/staging-preflight-diff.json",
+    "preflight:staging:diff:strict": "npm run scripts:build && node .tmp-ts-scripts/scripts/preflight-snapshot-diff.js --baseline infra/observability/preflight/staging-preflight.baseline.json --current .artifacts/preflight/staging-preflight.json --output .artifacts/preflight/staging-preflight-diff.json --strict",
+    "smoke:observability": "npm run scripts:build && node .tmp-ts-scripts/scripts/observability-assets-smoke.js",
+    "smoke:health": "npm run scripts:build && node .tmp-ts-scripts/scripts/reconciliation-health-smoke.js",
+    "smoke:publish": "npm run scripts:build && node .tmp-ts-scripts/scripts/publish-callback-reconcile-smoke.js",
+    "smoke:staging:full": "npm run preflight:staging:snapshot && npm run preflight:staging:diff && npm run check && npm run smoke:publish && npm run smoke:health && npm run smoke:observability && npm run sandbox:observability:e2e",
+    "postinstall": "npm run db:generate"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "prisma": "^6.6.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

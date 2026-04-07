@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Videotik Reconciliation
+    orgId: 1
+    folder: Videotik
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

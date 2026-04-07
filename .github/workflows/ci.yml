@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Publish smoke
+        run: npm run smoke:publish
+
+      - name: Reconciliation health smoke
+        run: npm run smoke:health
+
+      - name: Observability assets smoke
+        run: npm run smoke:observability
+
+  observability-sandbox-e2e:
+    runs-on: ubuntu-latest
+    needs:
+      - verify
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate staging preflight snapshot
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/videotik
+          INTERNAL_RECONCILIATION_TOKEN: ci-internal-reconcile-token-1234567890
+          TEMPLATE_RENDER_CALLBACK_SECRET: ci-render-callback-secret-1234567890
+          TIKTOK_PUBLISH_CALLBACK_SECRET: ci-publish-callback-secret-1234567890
+          VIDEOTIK_ALERT_WEBHOOK_URL: https://alerts.example.com/videotik-ci
+          VIDEOTIK_ALERT_EMAIL_TO: ops@example.com
+          GF_SMTP_HOST: smtp.example.com:587
+          GF_SMTP_FROM_ADDRESS: alerts@example.com
+          RENDER_RECONCILIATION_OWNER_ID: ci-render-worker
+          PUBLISH_RECONCILIATION_OWNER_ID: ci-publish-worker
+        run: |
+          npm run scripts:build
+          node .tmp-ts-scripts/scripts/staging-preflight.js --output .ci-artifacts/preflight/staging-preflight.json
+          node .tmp-ts-scripts/scripts/preflight-snapshot-diff.js --baseline infra/observability/preflight/staging-preflight.baseline.json --current .ci-artifacts/preflight/staging-preflight.json --output .ci-artifacts/preflight/staging-preflight-diff.json --strict
+
+      - name: Docker info
+        run: docker info
+
+      - name: Observability sandbox end-to-end
+        run: npm run sandbox:observability:e2e -- --keep-up
+
+      - name: Capture observability sandbox diagnostics
+        if: failure()
+        run: |
+          mkdir -p .ci-artifacts/observability
+          docker compose -f infra/observability/sandbox/docker-compose.yml ps > .ci-artifacts/observability/compose-ps.txt || true
+          docker compose -f infra/observability/sandbox/docker-compose.yml logs --no-color > .ci-artifacts/observability/compose-logs.txt || true
+
+      - name: Upload observability diagnostics artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-sandbox-diagnostics
+          path: .ci-artifacts/observability
+          if-no-files-found: ignore
+
+      - name: Upload staging preflight artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-preflight-artifacts
+          path: .ci-artifacts/preflight
+          if-no-files-found: ignore
+
+      - name: Teardown observability sandbox
+        if: always()
+        run: docker compose -f infra/observability/sandbox/docker-compose.yml down -v || true

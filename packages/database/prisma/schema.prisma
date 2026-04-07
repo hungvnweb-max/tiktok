@@ -1,0 +1,714 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TopicStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ContentFormatStatus {
+  ACTIVE
+  DEPRECATED
+}
+
+enum IdeaStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+enum ScriptStatus {
+  DRAFT
+  READY
+  ARCHIVED
+}
+
+enum CaptionStatus {
+  DRAFT
+  READY
+  ARCHIVED
+}
+
+enum VideoStatus {
+  IDEA_CREATED
+  SCRIPT_READY
+  IMAGE_READY
+  VOICE_READY
+  RENDER_READY
+  RENDERED
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum SceneRole {
+  HOOK
+  SETUP
+  BODY
+  PROOF
+  TWIST
+  PAYOFF
+  CTA
+}
+
+enum ReferenceEntityType {
+  TOPIC
+  CONTENT_FORMAT
+  IDEA
+  SCRIPT
+  CAPTION
+  VIDEO
+  IMAGE_PROMPT_PACK
+  SUBTITLE_PACK
+  ASSET
+  VOICE_JOB
+  PUBLICATION_SCHEDULE
+  PUBLISH_ATTEMPT
+  WORKFLOW_JOB
+}
+
+enum WorkflowJobType {
+  IDEA_GENERATION
+  SCRIPT_GENERATION
+  CAPTION_GENERATION
+  IMAGE_PROMPT_GENERATION
+  SUBTITLE_PACK_GENERATION
+  VOICE_GENERATION
+  RENDER
+  PUBLISH
+}
+
+enum WorkflowJobStatus {
+  WAITING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum ActivityActorType {
+  SYSTEM
+  USER
+  WORKER
+}
+
+enum CostCategory {
+  TEXT_GENERATION
+  IMAGE_GENERATION
+  VOICE_GENERATION
+  SUBTITLE_GENERATION
+  RENDER
+  PUBLISHING
+}
+
+enum ImagePromptPackStatus {
+  DRAFT
+  READY
+}
+
+enum SubtitlePackStatus {
+  DRAFT
+  READY
+}
+
+enum AssetType {
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
+enum AssetRole {
+  SCENE_IMAGE
+  SCENE_VOICE
+  RENDER_OUTPUT
+}
+
+enum AssetStatus {
+  READY
+  ARCHIVED
+}
+
+enum AssetSourceType {
+  MANUAL_UPLOAD
+  PROVIDER_GENERATED
+}
+
+enum AssetStorageProvider {
+  EXTERNAL_URL
+  S3
+  LOCAL
+}
+
+enum VoiceJobStatus {
+  WAITING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum PublicationScheduleStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  CANCELED
+}
+
+enum PublishAttemptStatus {
+  PENDING
+  PROCESSING
+  RETRYING
+  MANUAL_ACTION_REQUIRED
+  SUBMITTED
+  PUBLISHED
+  FAILED
+}
+
+enum PublishFailureStage {
+  VALIDATION
+  PROVIDER_EXECUTION
+  WORKFLOW
+}
+
+model Topic {
+  id                   String       @id @default(cuid())
+  slug                 String       @unique
+  name                 String
+  description          String
+  audience             String
+  contentPillars       Json
+  keywords             Json
+  preferredFormatSlugs Json
+  status               TopicStatus  @default(ACTIVE)
+  ideas                ContentIdea[]
+  scripts              ContentScript[]
+  captions             ContentCaption[]
+  videos               Video[]
+  imagePromptPacks     ImagePromptPack[]
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([status])
+  @@map("topics")
+}
+
+model ContentFormat {
+  id                     String              @id @default(cuid())
+  slug                   String              @unique
+  name                   String
+  description            String
+  objective              String
+  defaultDurationSeconds Int
+  defaultSceneCount      Int
+  promptGuidance         Json
+  structure              Json
+  deliveryOptions        Json
+  capabilities           Json
+  status                 ContentFormatStatus @default(ACTIVE)
+  ideas                  ContentIdea[]
+  scripts                ContentScript[]
+  captions               ContentCaption[]
+  videos                 Video[]
+  imagePromptPacks       ImagePromptPack[]
+  subtitlePacks          SubtitlePack[]
+  voiceJobs              VoiceJob[]
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@index([status])
+  @@map("content_formats")
+}
+
+model ContentIdea {
+  id                 String           @id @default(cuid())
+  topicId            String
+  contentFormatId    String
+  title              String
+  hook               String
+  angle              String
+  brief              String
+  callToAction       String
+  targetAudience     String
+  keywords           Json
+  formatRationale    String
+  generationProvider String
+  sourceMetadata     Json?
+  status             IdeaStatus       @default(DRAFT)
+  topic              Topic            @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  contentFormat      ContentFormat    @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  scripts            ContentScript[]
+  captions           ContentCaption[]
+  videos             Video[]
+  imagePromptPacks   ImagePromptPack[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([topicId, status])
+  @@index([contentFormatId, status])
+  @@map("ideas")
+}
+
+model ContentScript {
+  id                       String           @id @default(cuid())
+  topicId                  String
+  ideaId                   String
+  contentFormatId          String
+  title                    String
+  summary                  String
+  voiceover                String
+  sceneBlueprints          Json
+  estimatedDurationSeconds Int
+  generationProvider       String
+  sourceMetadata           Json?
+  status                   ScriptStatus     @default(READY)
+  topic                    Topic            @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  idea                     ContentIdea      @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  contentFormat            ContentFormat    @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  captions                 ContentCaption[]
+  videos                   Video[]
+  scenes                   Scene[]
+  imagePromptPacks         ImagePromptPack[]
+  subtitlePacks            SubtitlePack[]
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  @@index([topicId, status])
+  @@index([ideaId, status])
+  @@index([contentFormatId, status])
+  @@map("scripts")
+}
+
+model ContentCaption {
+  id                 String           @id @default(cuid())
+  topicId            String
+  ideaId             String
+  scriptId           String
+  contentFormatId    String
+  shortCaption       String
+  longCaption        String
+  hashtags           Json
+  callToAction       String
+  generationProvider String
+  sourceMetadata     Json?
+  status             CaptionStatus    @default(READY)
+  topic              Topic            @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  idea               ContentIdea      @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  script             ContentScript    @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  contentFormat      ContentFormat    @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([scriptId, status])
+  @@index([ideaId, status])
+  @@index([contentFormatId, status])
+  @@map("captions")
+}
+
+model Video {
+  id                       String           @id @default(cuid())
+  topicId                  String
+  ideaId                   String
+  scriptId                 String
+  contentFormatId          String
+  formatSlug               String
+  title                    String
+  status                   VideoStatus      @default(SCRIPT_READY)
+  estimatedDurationSeconds Int
+  subtitleConfig           Json
+  imageWorkflowConfig      Json
+  voiceoverConfig          Json
+  renderConfig             Json
+  publishingConfig         Json?
+  topic                    Topic            @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  idea                     ContentIdea      @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  script                   ContentScript    @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  contentFormat            ContentFormat    @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  scenes                   Scene[]
+  imagePromptPack          ImagePromptPack?
+  subtitlePack             SubtitlePack?
+  publicationSchedule      PublicationSchedule?
+  publishAttempts          PublishAttempt[]
+  assets                   Asset[]
+  voiceJobs                VoiceJob[]
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  @@index([topicId, status])
+  @@index([ideaId, status])
+  @@index([scriptId])
+  @@index([contentFormatId, status])
+  @@map("videos")
+}
+
+model PublicationSchedule {
+  id                    String                    @id @default(cuid())
+  videoId               String                    @unique
+  platformSlug          String
+  provider              String
+  mode                  String
+  timezone              String
+  scheduledFor          DateTime
+  caption               String
+  hashtags              Json
+  status                PublicationScheduleStatus @default(SCHEDULED)
+  publishedAt           DateTime?
+  externalPublicationId String?
+  video                 Video                      @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  publishAttempts       PublishAttempt[]
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  @@index([scheduledFor, status])
+  @@index([provider, status])
+  @@map("publication_schedules")
+}
+
+model PublishAttempt {
+  id                    String               @id @default(cuid())
+  videoId               String
+  publicationScheduleId String
+  provider              String
+  platformSlug          String
+  mode                  String
+  sequenceNumber        Int
+  status                PublishAttemptStatus @default(PENDING)
+  workflowAttemptCount  Int                  @default(0)
+  maxWorkflowAttempts   Int                  @default(3)
+  workflowJobId         String?
+  providerStatus        String?
+  providerPublicationId String?
+  externalUrl           String?
+  checklist             Json
+  validationIssues      Json
+  lastError             String?
+  failureStage          PublishFailureStage?
+  publishedAt           DateTime?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  metadata              Json?
+  video                 Video                @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  publicationSchedule   PublicationSchedule  @relation(fields: [publicationScheduleId], references: [id], onDelete: Cascade)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@unique([videoId, sequenceNumber])
+  @@index([videoId, createdAt])
+  @@index([publicationScheduleId, createdAt])
+  @@index([status, createdAt])
+  @@index([workflowJobId])
+  @@map("publish_attempts")
+}
+
+model Scene {
+  id                       String         @id @default(cuid())
+  videoId                  String
+  scriptId                 String?
+  sequence                 Int
+  role                     SceneRole
+  narration                String
+  visualDirection          String
+  onScreenText             String
+  estimatedDurationSeconds Int
+  subtitleConfig           Json?
+  metadata                 Json?
+  video                    Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  script                   ContentScript? @relation(fields: [scriptId], references: [id], onDelete: SetNull)
+  imagePrompts             SceneImagePrompt[]
+  subtitleCues             SubtitleCue[]
+  overlayCues              OverlayCue[]
+  assets                   Asset[]
+  voiceJobs                VoiceJob[]
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  @@unique([videoId, sequence])
+  @@index([videoId, role])
+  @@map("scenes")
+}
+
+model ImagePromptPack {
+  id              String                @id @default(cuid())
+  topicId         String
+  ideaId          String
+  scriptId        String
+  videoId         String                @unique
+  contentFormatId String
+  workflowMode    String
+  provider        String
+  status          ImagePromptPackStatus @default(READY)
+  metadata        Json?
+  topic           Topic                 @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  idea            ContentIdea           @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  script          ContentScript         @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  video           Video                 @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  contentFormat   ContentFormat         @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  prompts         SceneImagePrompt[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([topicId])
+  @@index([ideaId])
+  @@index([scriptId])
+  @@index([contentFormatId])
+  @@map("image_prompt_packs")
+}
+
+model SceneImagePrompt {
+  id                String          @id @default(cuid())
+  imagePromptPackId String
+  sceneId           String
+  sceneOrder        Int
+  prompt            String
+  negativePrompt    String?
+  aspectRatio       String
+  styleSlug         String
+  imagePromptPack   ImagePromptPack @relation(fields: [imagePromptPackId], references: [id], onDelete: Cascade)
+  scene             Scene           @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([imagePromptPackId, sceneId])
+  @@index([sceneId, sceneOrder])
+  @@map("scene_image_prompts")
+}
+
+model SubtitlePack {
+  id              String             @id @default(cuid())
+  videoId         String             @unique
+  scriptId        String
+  contentFormatId String
+  provider        String
+  defaultMode     String
+  status          SubtitlePackStatus @default(READY)
+  metadata        Json?
+  video           Video              @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  script          ContentScript      @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  contentFormat   ContentFormat      @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  subtitleCues    SubtitleCue[]
+  overlayCues     OverlayCue[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([scriptId])
+  @@index([contentFormatId])
+  @@map("subtitle_packs")
+}
+
+model SubtitleCue {
+  id             String       @id @default(cuid())
+  subtitlePackId String
+  sceneId        String
+  sceneOrder     Int
+  mode           String
+  text           String
+  startMs        Int
+  endMs          Int
+  subtitlePack   SubtitlePack @relation(fields: [subtitlePackId], references: [id], onDelete: Cascade)
+  scene          Scene        @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([subtitlePackId, sceneId])
+  @@index([sceneId, sceneOrder])
+  @@map("subtitle_cues")
+}
+
+model OverlayCue {
+  id             String       @id @default(cuid())
+  subtitlePackId String
+  sceneId        String
+  sceneOrder     Int
+  text           String
+  position       String
+  styleSlug      String
+  subtitlePack   SubtitlePack @relation(fields: [subtitlePackId], references: [id], onDelete: Cascade)
+  scene          Scene        @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([subtitlePackId, sceneId])
+  @@index([sceneId, sceneOrder])
+  @@map("overlay_cues")
+}
+
+model Asset {
+  id              String               @id @default(cuid())
+  videoId         String
+  sceneId         String?
+  type            AssetType
+  role            AssetRole
+  provider        String
+  sourceType      AssetSourceType
+  status          AssetStatus          @default(READY)
+  versionNumber   Int
+  isActive        Boolean              @default(false)
+  storageProvider AssetStorageProvider
+  assetUrl        String
+  storageKey      String?
+  mimeType        String?
+  bytes           Int?
+  width           Int?
+  height          Int?
+  durationSeconds Int?
+  metadata        Json?
+  video           Video                @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  scene           Scene?               @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  outputVoiceJobs VoiceJob[]           @relation("VoiceJobOutputAsset")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([videoId, type, role])
+  @@index([sceneId, type, role])
+  @@unique([videoId, sceneId, role, versionNumber])
+  @@map("assets")
+}
+
+model VoiceJob {
+  id              String         @id @default(cuid())
+  videoId         String
+  sceneId         String
+  contentFormatId String
+  provider        String
+  generationMode  String
+  sourceLine      String
+  voiceId         String?
+  status          VoiceJobStatus @default(WAITING)
+  attemptCount    Int            @default(0)
+  maxAttempts     Int            @default(3)
+  outputAssetId   String?
+  durationSeconds Int?
+  lastError       String?
+  metadata        Json?
+  video           Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  scene           Scene          @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  contentFormat   ContentFormat  @relation(fields: [contentFormatId], references: [id], onDelete: Restrict)
+  outputAsset     Asset?         @relation("VoiceJobOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([videoId, status])
+  @@index([sceneId, status])
+  @@index([contentFormatId, status])
+  @@map("voice_jobs")
+}
+
+model WorkflowJob {
+  id             String            @id @default(cuid())
+  type           WorkflowJobType
+  status         WorkflowJobStatus @default(WAITING)
+  referenceType  ReferenceEntityType
+  referenceId    String
+  attemptCount   Int               @default(0)
+  maxAttempts    Int               @default(3)
+  payload        Json?
+  resultMetadata Json?
+  lastError      String?
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  leaseOwner     String?
+  leaseToken     String?
+  leaseExpiresAt DateTime?
+  logs           WorkflowJobLog[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([type, status])
+  @@index([referenceType, referenceId])
+  @@index([leaseExpiresAt])
+  @@index([leaseOwner, leaseExpiresAt])
+  @@map("workflow_jobs")
+}
+
+model WorkflowJobLog {
+  id             String            @id @default(cuid())
+  workflowJobId  String
+  level          String
+  message        String
+  statusSnapshot WorkflowJobStatus
+  context        Json?
+  workflowJob    WorkflowJob       @relation(fields: [workflowJobId], references: [id], onDelete: Cascade)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([workflowJobId, createdAt])
+  @@map("workflow_job_logs")
+}
+
+model CallbackReceipt {
+  id             String              @id @default(cuid())
+  channel        String
+  operation      String
+  provider       String
+  idempotencyKey String              @unique
+  workflowJobId  String?
+  referenceType  ReferenceEntityType
+  referenceId    String
+  status         String
+  requestMetadata Json?
+  responsePayload String?
+  processedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([channel, provider, status])
+  @@index([workflowJobId])
+  @@index([referenceType, referenceId, createdAt])
+  @@map("callback_receipts")
+}
+
+model ActivityLog {
+  id            String              @id @default(cuid())
+  actorType     ActivityActorType
+  actorId       String
+  action        String
+  referenceType ReferenceEntityType
+  referenceId   String
+  message       String
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([referenceType, referenceId, createdAt])
+  @@index([action, createdAt])
+  @@map("activity_logs")
+}
+
+model CostRecord {
+  id            String              @id @default(cuid())
+  provider      String
+  category      CostCategory
+  referenceType ReferenceEntityType
+  referenceId   String
+  amount        Float
+  currency      String
+  units         String
+  quantity      Float
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([referenceType, referenceId, createdAt])
+  @@index([category, createdAt])
+  @@map("cost_logs")
+}
+
+model VersionSnapshot {
+  id                String              @id @default(cuid())
+  referenceType     ReferenceEntityType
+  referenceId       String
+  versionNumber     Int
+  sourceAction      String
+  serializedPayload String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([referenceType, referenceId, versionNumber])
+  @@index([referenceType, referenceId, createdAt])
+  @@map("version_records")
+}

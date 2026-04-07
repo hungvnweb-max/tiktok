@@ -1,0 +1,114 @@
+name: Promote Preflight Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      change_reason:
+        description: "Reason for baseline promotion"
+        required: true
+        type: string
+      apply_update:
+        description: "Apply update and create a draft PR"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate staging preflight snapshot and diff
+        id: diff_summary
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/videotik
+          INTERNAL_RECONCILIATION_TOKEN: ci-internal-reconcile-token-1234567890
+          TEMPLATE_RENDER_CALLBACK_SECRET: ci-render-callback-secret-1234567890
+          TIKTOK_PUBLISH_CALLBACK_SECRET: ci-publish-callback-secret-1234567890
+          VIDEOTIK_ALERT_WEBHOOK_URL: https://alerts.example.com/videotik-ci
+          VIDEOTIK_ALERT_EMAIL_TO: ops@example.com
+          GF_SMTP_HOST: smtp.example.com:587
+          GF_SMTP_FROM_ADDRESS: alerts@example.com
+          RENDER_RECONCILIATION_OWNER_ID: ci-render-worker
+          PUBLISH_RECONCILIATION_OWNER_ID: ci-publish-worker
+        run: |
+          npm run preflight:staging:snapshot
+          npm run preflight:staging:diff
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('.artifacts/preflight/staging-preflight-diff.json','utf8'));fs.appendFileSync(process.env.GITHUB_OUTPUT,`has_drift=${Boolean(d.hasDrift)}\n`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`drift_count=${Number(d.driftCount||0)}\n`);"
+
+      - name: Upload preflight artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-preflight-artifacts
+          path: .artifacts/preflight
+          if-no-files-found: ignore
+
+      - name: Dry-run summary
+        if: ${{ !inputs.apply_update }}
+        run: |
+          echo "Dry run completed."
+          echo "Reason: ${{ inputs.change_reason }}"
+          echo "Has drift: ${{ steps.diff_summary.outputs.has_drift }}"
+          echo "Drift count: ${{ steps.diff_summary.outputs.drift_count }}"
+
+      - name: Promote baseline and validate observability assets
+        if: ${{ inputs.apply_update }}
+        run: |
+          npm run preflight:staging:baseline
+          npm run smoke:observability
+
+      - name: Detect promoted file changes
+        id: promoted_changes
+        if: ${{ inputs.apply_update }}
+        run: |
+          if git diff --quiet -- infra/observability/preflight/staging-preflight.baseline.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No-op summary when baseline is unchanged
+        if: ${{ inputs.apply_update && steps.promoted_changes.outputs.changed == 'false' }}
+        run: |
+          echo "No baseline changes were produced. PR creation skipped."
+
+      - name: Create baseline promotion PR
+        if: ${{ inputs.apply_update && steps.promoted_changes.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(observability): promote staging preflight baseline"
+          branch: codex/preflight-baseline-${{ github.run_id }}
+          delete-branch: true
+          title: "chore(observability): promote staging preflight baseline"
+          body: |
+            Manual baseline promotion requested via workflow dispatch.
+
+            Reason:
+            - ${{ inputs.change_reason }}
+
+            Diff summary before promotion:
+            - has_drift: ${{ steps.diff_summary.outputs.has_drift }}
+            - drift_count: ${{ steps.diff_summary.outputs.drift_count }}
+          draft: true
+          add-paths: |
+            infra/observability/preflight/staging-preflight.baseline.json

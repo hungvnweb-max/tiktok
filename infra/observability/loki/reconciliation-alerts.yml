@@ -1,0 +1,63 @@
+groups:
+  - name: videotik-reconciliation-log-alerts
+    interval: 1m
+    rules:
+      - alert: VideotikPublishReconcileConsecutiveFailuresFromLogs
+        expr: |
+          sum by (service) (
+            count_over_time(
+              {service="videotik-api"} |= "publish reconciliation has" |= "consecutive failures" [5m]
+            )
+          ) > 0
+        for: 2m
+        labels:
+          severity: warning
+          pipeline: publish
+        annotations:
+          summary: "Publish reconciliation consecutive failure warning logs detected"
+          description: "Publish reconciliation warning logs indicate repeated failures."
+
+      - alert: VideotikRenderReconcileConsecutiveFailuresFromLogs
+        expr: |
+          sum by (service) (
+            count_over_time(
+              {service="videotik-api"} |= "render reconciliation has" |= "consecutive failures" [5m]
+            )
+          ) > 0
+        for: 2m
+        labels:
+          severity: warning
+          pipeline: render
+        annotations:
+          summary: "Render reconciliation consecutive failure warning logs detected"
+          description: "Render reconciliation warning logs indicate repeated failures."
+
+      - alert: VideotikPublishReconcilePendingWarningFromLogs
+        expr: |
+          sum by (service) (
+            count_over_time(
+              {service="videotik-api"} |= "publish reconciliation pending count" [10m]
+            )
+          ) > 0
+        for: 2m
+        labels:
+          severity: warning
+          pipeline: publish
+        annotations:
+          summary: "Publish reconciliation pending warning logs detected"
+          description: "Publish reconciliation pending backlog exceeded configured threshold."
+
+      - alert: VideotikRenderReconcilePendingWarningFromLogs
+        expr: |
+          sum by (service) (
+            count_over_time(
+              {service="videotik-api"} |= "render reconciliation pending count" [10m]
+            )
+          ) > 0
+        for: 2m
+        labels:
+          severity: warning
+          pipeline: render
+        annotations:
+          summary: "Render reconciliation pending warning logs detected"
+          description: "Render reconciliation pending backlog exceeded configured threshold."

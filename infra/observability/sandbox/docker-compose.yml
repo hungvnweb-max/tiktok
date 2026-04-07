@@ -1,0 +1,94 @@
+services:
+  videotik-api:
+    image: node:22-bookworm
+    working_dir: /workspace
+    command: >
+      sh -lc "npm ci && npm run dev:api"
+    volumes:
+      - ../../../:/workspace
+      - videotik_node_modules:/workspace/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      DATABASE_URL: ""
+      RENDER_RECONCILIATION_ENABLED: "true"
+      RENDER_RECONCILIATION_INTERVAL_MS: "15000"
+      RENDER_RECONCILIATION_STALE_AFTER_MS: "-1"
+      RENDER_RECONCILIATION_WARN_CONSECUTIVE_FAILURES: "1"
+      PUBLISH_RECONCILIATION_ENABLED: "true"
+      PUBLISH_RECONCILIATION_INTERVAL_MS: "15000"
+      PUBLISH_RECONCILIATION_STALE_AFTER_MS: "-1"
+      PUBLISH_RECONCILIATION_WARN_CONSECUTIVE_FAILURES: "1"
+    ports:
+      - "3000:3000"
+
+  alert-sink:
+    image: node:22-alpine
+    working_dir: /app
+    command: >
+      sh -lc "node /app/server.js"
+    volumes:
+      - ./alert-sink:/app:ro
+    ports:
+      - "9999:9999"
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  json-exporter:
+    image: quay.io/prometheuscommunity/json-exporter:v0.7.0
+    command:
+      - --config.file=/config/reconciliation-health-module.yml
+    volumes:
+      - ../prometheus/json-exporter/reconciliation-health-module.yml:/config/reconciliation-health-module.yml:ro
+    depends_on:
+      - videotik-api
+    ports:
+      - "7979:7979"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/alerts/reconciliation-alerts.rules.yml:/etc/prometheus/rules/reconciliation-alerts.rules.yml:ro
+    depends_on:
+      - json-exporter
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_ALERTING_ENABLED: "true"
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: mailhog:1025
+      GF_SMTP_FROM_ADDRESS: alerts@videotik.local
+      GF_SMTP_SKIP_VERIFY: "true"
+      DS_PROMETHEUS_UID: prometheus
+      VIDEOTIK_ALERT_WEBHOOK_URL: http://alert-sink:9999/mock-webhook
+      VIDEOTIK_ALERT_EMAIL_TO: ops@example.com
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../grafana/reconciliation-overview.dashboard.json:/var/lib/grafana/dashboards/reconciliation-overview.dashboard.json:ro
+      - ../grafana/alerting/reconciliation-unified-alerting.yml:/etc/grafana/provisioning/alerting/reconciliation-unified-alerting.yml:ro
+      - ../grafana/alerting/contact-points.yml:/etc/grafana/provisioning/alerting/contact-points.yml:ro
+      - ../grafana/alerting/notification-policies.yml:/etc/grafana/provisioning/alerting/notification-policies.yml:ro
+    depends_on:
+      - prometheus
+      - alert-sink
+      - mailhog
+    ports:
+      - "3001:3000"
+
+volumes:
+  videotik_node_modules:

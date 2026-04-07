@@ -1,0 +1,433 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: videotik-reconciliation
+    folder: Videotik
+    interval: 1m
+    rules:
+      - uid: vt_render_consec_fail
+        title: Videotik Render Reconcile Consecutive Failures
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: ${DS_PROMETHEUS_UID}
+            model:
+              datasource:
+                type: prometheus
+                uid: ${DS_PROMETHEUS_UID}
+              editorMode: code
+              expr: videotik_reconcile_render_consecutive_failures
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 3
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: warning
+          pipeline: render
+          service: videotik-api
+        annotations:
+          summary: Render reconcile is failing repeatedly
+          description: Render reconciliation has at least 3 consecutive failures for 5m.
+
+      - uid: vt_publish_consec_fail
+        title: Videotik Publish Reconcile Consecutive Failures
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: ${DS_PROMETHEUS_UID}
+            model:
+              datasource:
+                type: prometheus
+                uid: ${DS_PROMETHEUS_UID}
+              editorMode: code
+              expr: videotik_reconcile_publish_consecutive_failures
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 3
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: warning
+          pipeline: publish
+          service: videotik-api
+        annotations:
+          summary: Publish reconcile is failing repeatedly
+          description: Publish reconciliation has at least 3 consecutive failures for 5m.
+
+      - uid: vt_render_pending_high
+        title: Videotik Render Reconcile Pending Backlog
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: ${DS_PROMETHEUS_UID}
+            model:
+              datasource:
+                type: prometheus
+                uid: ${DS_PROMETHEUS_UID}
+              editorMode: code
+              expr: videotik_reconcile_render_pending_count
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 100
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        labels:
+          severity: warning
+          pipeline: render
+          service: videotik-api
+        annotations:
+          summary: Render reconcile backlog is high
+          description: Render pending count has stayed above 100 for 10m.
+
+      - uid: vt_publish_pending_hi
+        title: Videotik Publish Reconcile Pending Backlog
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: ${DS_PROMETHEUS_UID}
+            model:
+              datasource:
+                type: prometheus
+                uid: ${DS_PROMETHEUS_UID}
+              editorMode: code
+              expr: videotik_reconcile_publish_pending_count
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 100
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        labels:
+          severity: warning
+          pipeline: publish
+          service: videotik-api
+        annotations:
+          summary: Publish reconcile backlog is high
+          description: Publish pending count has stayed above 100 for 10m.
+
+      - uid: vt_render_failed_items
+        title: Videotik Render Reconcile Failed Items
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: ${DS_PROMETHEUS_UID}
+            model:
+              datasource:
+                type: prometheus
+                uid: ${DS_PROMETHEUS_UID}
+              editorMode: code
+              expr: videotik_reconcile_render_failed_count
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 3m
+        labels:
+          severity: critical
+          pipeline: render
+          service: videotik-api
+        annotations:
+          summary: Render reconcile is reporting failed items
+          description: Render reconciliation summary reports failed items.
+
+      - uid: vt_publish_failed_itm
+        title: Videotik Publish Reconcile Failed Items
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: ${DS_PROMETHEUS_UID}
+            model:
+              datasource:
+                type: prometheus
+                uid: ${DS_PROMETHEUS_UID}
+              editorMode: code
+              expr: videotik_reconcile_publish_failed_count
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 3m
+        labels:
+          severity: critical
+          pipeline: publish
+          service: videotik-api
+        annotations:
+          summary: Publish reconcile is reporting failed items
+          description: Publish reconciliation summary reports failed items.

@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "incremental": true,
+    "tsBuildInfoFile": ".tmp-ts-scripts/tsconfig.scripts.tsbuildinfo",
+    "outDir": ".tmp-ts-scripts",
+    "rootDir": "."
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "apps/**/*.ts",
+    "packages/**/*.ts"
+  ],
+  "exclude": [
+    "**/dist/**",
+    "**/node_modules/**"
+  ]
+}

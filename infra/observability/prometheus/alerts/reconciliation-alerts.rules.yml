@@ -1,0 +1,68 @@
+groups:
+  - name: videotik-reconciliation-alerts
+    rules:
+      - alert: VideotikPublishReconcileConsecutiveFailures
+        expr: videotik_reconcile_publish_consecutive_failures >= 3
+        for: 5m
+        labels:
+          severity: warning
+          service: videotik-api
+          pipeline: publish
+        annotations:
+          summary: "Publish reconcile is failing repeatedly"
+          description: "Publish reconciliation has at least 3 consecutive failures for 5m."
+
+      - alert: VideotikRenderReconcileConsecutiveFailures
+        expr: videotik_reconcile_render_consecutive_failures >= 3
+        for: 5m
+        labels:
+          severity: warning
+          service: videotik-api
+          pipeline: render
+        annotations:
+          summary: "Render reconcile is failing repeatedly"
+          description: "Render reconciliation has at least 3 consecutive failures for 5m."
+
+      - alert: VideotikPublishReconcilePendingBacklog
+        expr: videotik_reconcile_publish_pending_count >= 100
+        for: 10m
+        labels:
+          severity: warning
+          service: videotik-api
+          pipeline: publish
+        annotations:
+          summary: "Publish reconcile pending backlog is high"
+          description: "Publish pending count has stayed above 100 for at least 10m."
+
+      - alert: VideotikRenderReconcilePendingBacklog
+        expr: videotik_reconcile_render_pending_count >= 100
+        for: 10m
+        labels:
+          severity: warning
+          service: videotik-api
+          pipeline: render
+        annotations:
+          summary: "Render reconcile pending backlog is high"
+          description: "Render pending count has stayed above 100 for at least 10m."
+
+      - alert: VideotikPublishReconcileFailedItemsBurst
+        expr: videotik_reconcile_publish_failed_count >= 1
+        for: 3m
+        labels:
+          severity: critical
+          service: videotik-api
+          pipeline: publish
+        annotations:
+          summary: "Publish reconcile is producing failed items"
+          description: "Last publish reconciliation summary reports failed items."
+
+      - alert: VideotikRenderReconcileFailedItemsBurst
+        expr: videotik_reconcile_render_failed_count >= 1
+        for: 3m
+        labels:
+          severity: critical
+          service: videotik-api
+          pipeline: render
+        annotations:
+          summary: "Render reconcile is producing failed items"
+          description: "Last render reconciliation summary reports failed items."

@@ -1,0 +1,16 @@
+{
+  "name": "@videotik/api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "dependencies": {
+    "@videotik/core": "*",
+    "@videotik/database": "*",
+    "fastify": "^5.6.1"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "check": "tsc -b --pretty false"
+  }
+}

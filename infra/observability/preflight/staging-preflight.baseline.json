@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "requiredIssueCount": 0,
+  "warningCount": 0,
+  "outputPath": "infra/observability/preflight/staging-preflight.baseline.json",
+  "checked": {
+    "databaseUrl": true,
+    "internalReconcileToken": true,
+    "renderCallbackSecret": true,
+    "publishCallbackSecret": true,
+    "alertWebhookUrl": true,
+    "alertEmailRecipients": true,
+    "dockerReachable": true
+  },
+  "requiredIssues": [],
+  "warnings": []
+}
