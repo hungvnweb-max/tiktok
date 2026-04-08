@@ -17,6 +17,7 @@ on:
 jobs:
   pilot-dry-run:
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 35
     permissions:
       contents: read
